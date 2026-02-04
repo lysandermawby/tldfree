@@ -147,8 +147,8 @@ parse_arguments() {
         esac
     done
 
-    # validate that we received at least one domain
-    if [ -z "$DOMAIN" ]; then
+    # validate that we received at least one domain (unless just updating)
+    if [ -z "$DOMAIN" ] && [ "$PERFORM_UPDATE" -eq 0 ]; then
         error "No domain provided"
         show_help >&2
         return 1
@@ -197,7 +197,10 @@ update_tlds() {
         return 1
     fi
 
-    curl "$data_url" > "$TLDS_FILE" 2>&1
+    if ! curl -sfS "$data_url" -o "$TLDS_FILE"; then
+        error "Failed to download TLDs list"
+        return 1
+    fi
 }
 
 # construct all domains being queried
@@ -320,6 +323,9 @@ if [ "$PERFORM_UPDATE" -eq 1 ]; then
         fi
     fi
     update_tlds
+    if [ -z "$DOMAIN" ]; then
+        exit 0
+    fi
 fi
 
 # check dependencies (note that curl dependency is already checked in the update_tlds function)
