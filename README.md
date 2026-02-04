@@ -46,7 +46,7 @@ You will see help information such as the following:
 tldfree - Find available domains.
 
 USAGE:
-    tldfree [OPTIONS] <domain name> [--tlds]
+    ./tldfree.sh [OPTIONS] <domain name> [--tlds]
 
 OPTIONS:
     -h|--help           Show this help message
@@ -60,5 +60,5 @@ OPTIONS:
     --tlds              Search only these tlds
 
 EXAMPLE:
-    tldfree google --tlds com org net
+    ./tldfree.sh google --tlds com org net
 ```
