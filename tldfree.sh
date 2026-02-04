@@ -29,6 +29,8 @@ TLDS_FILE="${SCRIPT_DIR}/tlds.txt"
 WHOIS_AVAILABLE=1
 WHOIS_TIMEOUT=10
 LOOKUP_METHOD='auto'
+USE_COMMON_TLDS=0
+COMMON_TLDS_FILE="${SCRIPT_DIR}/common_tlds.txt"
 
 
 # help message
@@ -47,6 +49,7 @@ OPTIONS:
     -a|--available      Only show available domains
     --whois             Force whois lookup (fail if whois is not installed)
     --ping              Force ping lookup
+    -c|--common         Only check common TLDs (from common_tlds.txt)
     --no-backup-tlds    Do not make a backup of the current tlds list
     --tlds              Search only these tlds
 
@@ -97,6 +100,10 @@ parse_arguments() {
                     return 1
                 fi
                 LOOKUP_METHOD='ping'
+                shift
+                ;;
+            -c|--common)
+                USE_COMMON_TLDS=1
                 shift
                 ;;
             -u|--update)
@@ -199,7 +206,7 @@ get_all_domains() {
     TLDS_TO_USE=()
     if [[ "${#TLDS[@]}" -eq 0 ]]; then
         while IFS= read -r line; do
-            TLDS_TO_USE+=("$line")
+            TLDS_TO_USE+=("$(echo "$line" | tr '[:upper:]' '[:lower:]')") # make this lower case
         done < <(tail -n +2 "$TLDS_FILE") # assumes 1 indexing. skips the first line of the file as this is always a comment
     else
         TLDS_TO_USE=("${TLDS[@]}")
@@ -242,7 +249,7 @@ check_domains() {
             continue
         fi
         # some registries return Domain Name: even for free domains, so check for free/available status first
-        free_status=$(echo "$whois_query" | grep -iE "Status:\s*free|is free|Status:\s*available")
+        free_status=$(echo "$whois_query" | grep -iE "Status:\s*free|is free|Status:\s*available|No Object Found")
         result=$(echo "$whois_query" | grep -E "^\s*Domain Name:|^\s*Name Server|^\s*Registrar:")
 
         if [ -n "$result" ] && [ -z "$free_status" ]; then
@@ -337,6 +344,15 @@ else
             exit 1
         fi
     fi
+fi
+
+# use common tlds file if requested
+if [ "$USE_COMMON_TLDS" -eq 1 ]; then
+    if [ ! -f "$COMMON_TLDS_FILE" ]; then
+        error "Common TLDs file not found: $COMMON_TLDS_FILE"
+        exit 1
+    fi
+    TLDS_FILE="$COMMON_TLDS_FILE"
 fi
 
 # construct the domains being queried
